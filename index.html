@@ -2,37 +2,22 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>Community Ball – Satelliten (statisch)</title>
+  <title>Community Ball – Satelliten (tunable)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- model-viewer -->
   <script type="module" src="https://unpkg.com/@google/model-viewer@3.4.0/dist/model-viewer.min.js"></script>
   <style>
-    html, body { margin:0; height:100%; background:#000; }
+    html, body { margin:0; height:100%; background:#000; color:#fff; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif }
     model-viewer { width:100%; height:100%; }
-
-    /* Satelliten-Thumbnails im 3D-Raum (Hotspots) */
-    .sat {
-      width:84px; height:84px; border-radius:50%;
-      border:2px solid #fff; box-shadow:0 0 10px rgba(255,255,255,.4);
-      object-fit:cover; cursor:pointer; transition:transform .2s ease;
-    }
-    .sat:hover { transform:scale(1.12); }
-
-    /* Zoom-Buttons sichtbar oben drüber */
-    .controls {
-      position:fixed; right:12px; bottom:12px; display:flex; gap:8px;
-      z-index: 9999;
-    }
-    .btn {
-      background:#111; color:#0ff; border:1px solid #044; border-radius:10px;
-      padding:10px 14px; font-weight:700; cursor:pointer; user-select:none;
-      font-size:18px; line-height:1;
-    }
-    .btn:active { transform:scale(.98); }
+    .sat { width:84px; height:84px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px rgba(255,255,255,.4); object-fit:cover; cursor:pointer; transition:transform .2s ease }
+    .sat:hover { transform:scale(1.12) }
+    .panel { position:fixed; right:12px; bottom:12px; display:flex; gap:8px; align-items:center; z-index:9999; background:rgba(0,0,0,.5); padding:8px 12px; border-radius:12px; border:1px solid #333 }
+    .btn { background:#111; color:#0ff; border:1px solid #044; border-radius:10px; padding:8px 12px; font-weight:700; cursor:pointer; user-select:none; font-size:18px; line-height:1 }
+    .btn:active { transform:scale(.98) }
+    .label { font-size:12px; opacity:.9; margin-left:6px }
+    input[type="range"]{ accent-color:#0ff }
   </style>
 </head>
 <body>
-  <!-- Dein 3D-Ball -->
   <model-viewer id="viewer"
     src="ball4.glb"
     alt="Community Ball"
@@ -40,30 +25,36 @@
     auto-rotate
     interaction-prompt="none"
     exposure="1"
-    background-color="#000">
+    background-color="#000"
+    <!-- Start viel weiter weg und Grenzen großzügig -->
+    camera-orbit="0deg 65deg 30m"
+    min-camera-orbit="auto auto 5m"
+    max-camera-orbit="auto auto 200m">
   </model-viewer>
 
-  <!-- Zoom-Buttons -->
-  <div class="controls">
-    <div class="btn" id="zoomOut">−</div>
-    <div class="btn" id="zoomIn">+</div>
+  <div class="panel">
+    <button class="btn" id="zoomOut">−</button>
+    <button class="btn" id="zoomIn">+</button>
+    <label class="label">Radius:
+      <input id="radius" type="range" min="5" max="80" step="1" value="30">
+      <span id="rval">30</span>m
+    </label>
   </div>
 
   <script>
-    // === Deine 3 Firebase-Bilder ===
-    const images = [
+    const IMAGES = [
       "https://firebasestorage.googleapis.com/v0/b/memberme-a8fe6.appspot.com/o/locations%2F1000022009.jpgfalse%201756968240212?alt=media&token=51482d69-7250-42bb-b5d1-f0695d4bc623",
       "https://firebasestorage.googleapis.com/v0/b/memberme-a8fe6.appspot.com/o/locations%2F1000026952.jpgfalse%201756978385380?alt=media&token=c22548a3-4cc1-478a-adec-35519f956d8b",
       "https://firebasestorage.googleapis.com/v0/b/memberme-a8fe6.appspot.com/o/locations%2F1000032687.jpgfalse%201756994404007?alt=media&token=50a31929-f0c3-45ad-9aeb-e6bda3f56af8"
     ];
 
-    // Abstand der Satelliten vom Ball-Zentrum (in Metern).
-    // Falls sie im/zu nah am Ball sind: größer machen (z. B. 4–6).
-    let RADIUS = 5.0;
+    const viewer = document.getElementById('viewer');
+    const radiusSlider = document.getElementById('radius');
+    const rval = document.getElementById('rval');
+    let RADIUS = parseFloat(radiusSlider.value);
 
-    // Gleichmäßige Punkte auf einer Kugel (Fibonacci-Sphere)
     function fibonacciSphere(n, r){
-      const pts=[]; const PHI=(1+Math.sqrt(5))/2;
+      const pts=[], PHI=(1+Math.sqrt(5))/2;
       for (let i=0;i<n;i++){
         const t=i/n, inc=Math.PI*2*(1-1/PHI);
         const z=1-2*t, rad=Math.sqrt(1-z*z), th=inc*i;
@@ -72,42 +63,50 @@
       return pts;
     }
 
-    const viewer = document.getElementById('viewer');
+    function clearSatellites(){
+      [...viewer.querySelectorAll('img[slot^="hotspot-"]')].forEach(n=>n.remove());
+    }
 
-    // Sat-Bilder als Hotspots im 3D-Raum anheften (nachdem das GLB geladen ist)
-    viewer.addEventListener('load', () => {
-      const pts = fibonacciSphere(images.length, RADIUS);
-      images.forEach((url, i) => {
-        const el = document.createElement('img');
-        el.src = url;
-        el.className = 'sat';
-        el.slot = `hotspot-${i}`;
-
+    function buildSatellites(){
+      clearSatellites();
+      const pts = fibonacciSphere(IMAGES.length, RADIUS);
+      IMAGES.forEach((url, i) => {
+        const img = document.createElement('img');
+        img.src = url;
+        img.className = 'sat';
+        img.slot = `hotspot-${i}`;
         const [x,y,z] = pts[i];
-        // Position/Normal in Model-Koordinaten (Meter)
-        el.dataset.position = `${x} ${y} ${z}`;
-        el.dataset.normal   = `${x} ${y} ${z}`;
-        el.setAttribute('data-visibility-attribute','visible');
-
-        // klickbar machen (hier z. B. nur Bild in neuem Tab)
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          window.open(url, '_blank', 'noopener');
-        });
-
-        viewer.appendChild(el);
+        img.dataset.position = `${x} ${y} ${z}`;
+        img.dataset.normal   = `${x} ${y} ${z}`;
+        img.setAttribute('data-visibility-attribute','visible');
+        img.addEventListener('click', (e)=>{ e.stopPropagation(); window.open(url,'_blank','noopener'); });
+        img.addEventListener('error', ()=>{ img.style.display='none'; console.warn('Bild lädt nicht:', url); });
+        viewer.appendChild(img);
       });
-    });
+      console.log('Satelliten aufgebaut, RADIUS=', RADIUS);
+    }
 
-    // + / − Zoom-Buttons (ändern Kamera-Radius statt Field-of-View → wirkt zuverlässiger)
+    // Zoom per Buttons: Radius (Kameradistanz) anpassen
     function changeZoom(delta){
-      const o = viewer.getCameraOrbit(); // {theta, phi, radius}
+      const o = viewer.getCameraOrbit();
       const r = parseFloat(o.radius);
-      const nr = Math.max(0.2, r + delta); // Untergrenze gegen "durchs Objekt clippen"
+      const nr = Math.max(0.5, Math.min(200, r + delta));
       viewer.cameraOrbit = `${o.theta} ${o.phi} ${nr}m`;
     }
-    document.getElementById('zoomIn').addEventListener('click',  () => changeZoom(-0.4));
-    document.getElementById('zoomOut').addEventListener('click', () => changeZoom(+0.4));
+    document.getElementById('zoomIn').addEventListener('click',  ()=>changeZoom(-2));
+    document.getElementById('zoomOut').addEventListener('click', ()=>changeZoom(+2));
+
+    // Radius live einstellen
+    radiusSlider.addEventListener('input', ()=>{
+      RADIUS = parseFloat(radiusSlider.value);
+      rval.textContent = RADIUS;
+      buildSatellites();
+    });
+
+    // Erst nach GLB-Load Satelliten hinzufügen
+    viewer.addEventListener('load', ()=>{
+      buildSatellites();
+    });
   </script>
 </body>
 </html>
