@@ -47,7 +47,7 @@
     exposure="1"
     background-color="#000"
     camera-orbit="0deg 65deg 3m"
-    min-camera-orbit="auto auto 2m"
+    min-camera-orbit="auto auto 0.2m"
     max-camera-orbit="auto auto 20m">
   </model-viewer>
 
@@ -64,13 +64,13 @@
     function changeZoom(delta) {
       const orbit = viewer.getCameraOrbit();
       let radius = orbit.radius + delta;
-      if (radius < 2) radius = 2;   // minimale Nähe
-      if (radius > 20) radius = 20; // maximale Distanz
+      if (radius < 0.2) radius = 0.2;  // jetzt extrem nah möglich
+      if (radius > 20) radius = 20; 
       viewer.cameraOrbit = `${orbit.theta}rad ${orbit.phi}rad ${radius}m`;
     }
 
-    zoomIn.addEventListener('click', () => changeZoom(-1));
-    zoomOut.addEventListener('click', () => changeZoom(1));
+    zoomIn.addEventListener('click', () => changeZoom(-0.2));
+    zoomOut.addEventListener('click', () => changeZoom(0.5));
   </script>
 
 </body>
