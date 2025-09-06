@@ -2,37 +2,28 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>Community Ball – Platzhalter-Hotspots (fix)</title>
+  <title>Community Ball – dicht am Ball</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script type="module" src="https://unpkg.com/@google/model-viewer@3.4.0/dist/model-viewer.min.js"></script>
   <style>
     html, body { margin:0; height:100%; background:#000; color:#fff; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif }
     model-viewer { width:100%; height:100%; }
 
-    .sat {
-      width:84px; height:84px;
-      border-radius:12px;
-      background:#fff;
-      border:2px solid #0ff;
-      box-shadow:0 0 14px rgba(0,255,255,.45);
-      display:flex; align-items:center; justify-content:center;
-      font-weight:800; color:#000;
-      cursor:pointer; user-select:none;
-      transition:transform .15s ease;
+    .sat{
+      width:84px; height:84px; border-radius:12px; background:#fff;
+      border:2px solid #0ff; box-shadow:0 0 14px rgba(0,255,255,.45);
+      display:flex; align-items:center; justify-content:center; font-weight:800; color:#000;
+      cursor:pointer; user-select:none; transition:transform .15s ease;
     }
-    .sat:hover { transform:scale(1.08) }
+    .sat:hover{ transform:scale(1.08) }
 
-    .controls {
-      position:fixed; right:12px; bottom:12px; display:flex; gap:8px;
-      z-index:9999; background:rgba(0,0,0,.5); padding:8px 10px; border-radius:12px; border:1px solid #333;
+    .controls{
+      position:fixed; right:12px; bottom:12px; display:flex; gap:8px; z-index:9999;
+      background:rgba(0,0,0,.5); padding:8px 10px; border-radius:12px; border:1px solid #333;
     }
-    .btn {
-      background:#111; color:#0ff; border:1px solid #044; border-radius:10px;
-      padding:10px 14px; font-weight:700; cursor:pointer; user-select:none;
-      font-size:18px; line-height:1;
-    }
-    .btn:active { transform:scale(.98) }
-    .label { font-size:12px; opacity:.9; margin-left:6px }
+    .btn{ background:#111; color:#0ff; border:1px solid #044; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; user-select:none; font-size:18px; line-height:1 }
+    .btn:active{ transform:scale(.98) }
+    .label{ font-size:12px; opacity:.9; margin-left:6px }
     input[type="range"]{ accent-color:#0ff }
   </style>
 </head>
@@ -45,17 +36,19 @@
     interaction-prompt="none"
     exposure="1"
     background-color="#000"
-    camera-orbit="0deg 65deg 120m"
-    min-camera-orbit="auto auto 10m"
-    max-camera-orbit="auto auto 400m">
+    /* Start: sehr nah → Ball groß */
+    camera-orbit="0deg 65deg 3m"
+    /* nur weiter rauszoomen erlauben */
+    min-camera-orbit="auto auto 2m"
+    max-camera-orbit="auto auto 150m">
   </model-viewer>
 
   <div class="controls">
     <div class="btn" id="zoomOut">−</div>
     <div class="btn" id="zoomIn">+</div>
     <label class="label">Radius:
-      <input id="radius" type="range" min="20" max="200" step="5" value="80">
-      <span id="rval">80</span>m
+      <input id="radius" type="range" min="3" max="30" step="0.5" value="4">
+      <span id="rval">4</span>m
     </label>
   </div>
 
@@ -64,8 +57,8 @@
     const slider = document.getElementById('radius');
     const rval   = document.getElementById('rval');
 
-    const COUNT = 10;         // 10 Platzhalter
-    let RADIUS  = parseFloat(slider.value); // Abstand vom Ballzentrum in Metern
+    const COUNT = 10;                   // 10 Platzhalter
+    let RADIUS  = parseFloat(slider.value);  // Abstand der Platzhalter vom Zentrum
 
     function fibonacciSphere(n, r){
       const pts=[], PHI=(1+Math.sqrt(5))/2;
@@ -91,24 +84,22 @@
         el.dataset.position = `${x} ${y} ${z}`;
         el.dataset.normal   = `${x} ${y} ${z}`;
         el.setAttribute('data-visibility-attribute','visible');
-        el.addEventListener('click', (e)=>{
-          e.stopPropagation();
-          alert(`Hotspot #${i+1}\nPos: ${x.toFixed(1)} ${y.toFixed(1)} ${z.toFixed(1)} m`);
-        });
         viewer.appendChild(el);
       }
       console.log('Hotspots aufgebaut. RADIUS =', RADIUS);
     }
 
+    // Zoom: Start nah (3m). „−“ zoomt raus, „+“ wieder rein – aber nie näher als 2m.
     function changeZoom(delta){
       const o  = viewer.getCameraOrbit();
       const r  = parseFloat(o.radius);
-      const nr = Math.max(10, Math.min(400, r + delta));
+      const nr = Math.max(2, Math.min(150, r + delta));
       viewer.cameraOrbit = `${o.theta} ${o.phi} ${nr}m`;
     }
-    document.getElementById('zoomIn').addEventListener('click',  ()=>changeZoom(-10));
-    document.getElementById('zoomOut').addEventListener('click', ()=>changeZoom(+10));
+    document.getElementById('zoomIn').addEventListener('click',  ()=>changeZoom(-2));
+    document.getElementById('zoomOut').addEventListener('click', ()=>changeZoom(+2));
 
+    // Radius live verstellen (Platzhalter näher/weiter an der Oberfläche)
     slider.addEventListener('input', ()=>{
       RADIUS = parseFloat(slider.value);
       rval.textContent = RADIUS;
