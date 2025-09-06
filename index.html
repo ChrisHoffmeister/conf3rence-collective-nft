@@ -23,6 +23,7 @@
       position: absolute;
       object-fit: cover;
       transition: transform 0.3s;
+      pointer-events: auto;
     }
     .sat:hover {
       transform: scale(1.2);
@@ -35,6 +36,27 @@
       height: 100%;
       pointer-events: none;
     }
+    #zoom-controls {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .zoom-btn {
+      width: 40px;
+      height: 40px;
+      font-size: 24px;
+      border: none;
+      border-radius: 50%;
+      background: white;
+      color: black;
+      cursor: pointer;
+    }
+    .zoom-btn:hover {
+      background: #ddd;
+    }
   </style>
 </head>
 <body>
@@ -46,13 +68,40 @@
     auto-rotate
     interaction-prompt="none"
     exposure="1"
+    field-of-view="45deg"
     background-color="#000">
   </model-viewer>
 
   <!-- Container für Satellitenbilder -->
   <div id="sat-container"></div>
 
+  <!-- Zoom Buttons -->
+  <div id="zoom-controls">
+    <button class="zoom-btn" id="zoom-in">+</button>
+    <button class="zoom-btn" id="zoom-out">−</button>
+  </div>
+
   <script>
+    const viewer = document.getElementById("viewer");
+
+    // Zoom In
+    document.getElementById("zoom-in").addEventListener("click", () => {
+      let fov = parseFloat(viewer.getAttribute("field-of-view"));
+      if (fov > 10) { // Minimum Limit
+        fov -= 5;
+        viewer.setAttribute("field-of-view", fov + "deg");
+      }
+    });
+
+    // Zoom Out
+    document.getElementById("zoom-out").addEventListener("click", () => {
+      let fov = parseFloat(viewer.getAttribute("field-of-view"));
+      if (fov < 120) { // Maximum Limit
+        fov += 5;
+        viewer.setAttribute("field-of-view", fov + "deg");
+      }
+    });
+
     // === Hole NFTs von Rarible ===
     async function loadNFTs() {
       const apiKey = "46cf9019-26f0-47db-9fb2-418ff4e33c58";
